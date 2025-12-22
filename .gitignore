@@ -17,6 +17,7 @@ lerna-debug.log*
 
 # Tests
 /coverage
+/coverage-e2e
 /.nyc_output
 
 # IDEs and editors
@@ -45,6 +46,7 @@ lerna-debug.log*
 # temp directory
 .temp
 .tmp
+/tmp/*
 
 # Runtime data
 pids
