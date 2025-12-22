@@ -4,6 +4,8 @@ This is a simple Movie Management API built with NestJS. It allows you to perfor
 
 > ⚠️ Please refer to the `DESCRIPTION.md` file for a draft description of the application.
 
+> The basic Postman collection is available in this [link](https://www.postman.com/fkakkus/fkakkus-public/collection/15722364-719410f5-ef19-49b7-b0b1-904e817c81c4/?action=share&creator=15722364).
+
 To get started, follow the instructions below to set up the project on your local machine.
 
 ## Features
