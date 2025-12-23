@@ -1,6 +1,20 @@
 import dotenv from 'dotenv';
 import { existsSync } from 'node:fs';
 
+// Directory to load environment files from
+let envDir = `${__dirname}/../../..`;
+
+if (process.env.ENV_PATH) {
+  // Load environment file from custom path
+  const customEnvPath = process.env.ENV_PATH.trim();
+  if (!existsSync(customEnvPath)) {
+    throw new Error(
+      `ENV_PATH is set to '${customEnvPath}' but the folder does not exist.`,
+    );
+  }
+  envDir = customEnvPath;
+}
+
 if (process.env.NODE_ENV) {
   // Load environment files with fallback chain
   const envName = process.env.NODE_ENV.trim();
@@ -8,9 +22,9 @@ if (process.env.NODE_ENV) {
   const envLocalFile = `.env.${envName}.local`;
   const defaultEnvFile = '.env';
 
-  const envFilePath = `${__dirname}/../../../${envFile}`;
-  const envLocalFilePath = `${__dirname}/../../../${envLocalFile}`;
-  const defaultEnvFilePath = `${__dirname}/../../../${defaultEnvFile}`;
+  const envFilePath = `${envDir}/${envFile}`;
+  const envLocalFilePath = `${envDir}/${envLocalFile}`;
+  const defaultEnvFilePath = `${envDir}/${defaultEnvFile}`;
 
   // Try .env.{NODE_ENV}.local first (highest priority)
   if (existsSync(envLocalFilePath)) {
@@ -28,7 +42,8 @@ if (process.env.NODE_ENV) {
   }
 } else {
   const defaultEnvFile = '.env';
-  const defaultEnvFilePath = `${__dirname}/../../../${defaultEnvFile}`;
+  const defaultEnvFilePath = `${envDir}/${defaultEnvFile}`;
+
   if (existsSync(defaultEnvFilePath)) {
     dotenv.config({ path: defaultEnvFilePath });
   } else {
