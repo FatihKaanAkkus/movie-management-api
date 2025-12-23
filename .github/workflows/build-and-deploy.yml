@@ -1,0 +1,124 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd="pg_isready -U testuser"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      NODE_ENV: test
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_USERNAME: testuser
+      DB_PASSWORD: testpass
+      DB_NAME: testdb
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linter
+        run: npm run lint
+
+      - name: Run tests with coverage
+        run: npm run test:cov
+      
+      - name: Run e2e tests
+        run: npm run test:e2e
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        if: success()
+        with:
+          file: ./coverage/lcov.info
+          flags: unittests
+          fail_ci_if_error: false
+        continue-on-error: true
+
+      - name: Archive coverage results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: test
+    outputs:
+      artifact_name: ${{ steps.vars.outputs.artifact_name }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Get version and commit hash
+        id: vars
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          GIT_HASH=$(git rev-parse --short=7 HEAD)
+          ARTIFACT="dist-v${VERSION}-${GIT_HASH}.tar.gz"
+          echo "artifact_name=$ARTIFACT" >> $GITHUB_OUTPUT
+
+      - name: Archive production build
+        run: |
+          tar -czf "${{ steps.vars.outputs.artifact_name }}" \
+            package.json \
+            package-lock.json \
+            nest-cli.json \
+            ecosystem.config.cjs \
+            DESCRIPTION.md \
+            README.md \
+            dist
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.vars.outputs.artifact_name }}
+          path: ${{ steps.vars.outputs.artifact_name }}
+          retention-days: 30
